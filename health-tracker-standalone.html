@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Health Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.8.0/dist/recharts.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --background: #F5F7FA;
+            --foreground: #1E2235;
+            --muted: #F1F5F9;
+            --muted-foreground: #475569;
+            --card: #FFFFFF;
+            --border: #E2E8F0;
+            --primary: #16a34a;
+            --primary-foreground: #F0FDF4;
+            --secondary: #3B82F6;
+            --destructive: #EF4444;
+            --accent: #06B6D4;
+            --radius: 0.75rem;
+        }
+
+        .dark {
+            --background: #0F172A;
+            --foreground: #E2E8F0;
+            --muted: #1E293B;
+            --muted-foreground: #94A3B8;
+            --card: #0F172A;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.5;
+        }
+
+        .container {
+            min-height: 100vh;
+            display: flex;
+            background-color: var(--muted);
+        }
+
+        .sidebar {
+            width: 256px;
+            background-color: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-foreground);
+        }
+
+        .nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: var(--muted-foreground);
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--primary);
+            background-color: rgba(22, 163, 74, 0.1);
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+        }
+
+        .header {
+            background-color: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--foreground);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .menu-btn:hover {
+            background-color: var(--muted);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-foreground);
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 32px;
+            display: grid;
+            gap: 32px;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-info h3 {
+            font-size: 14px;
+            color: var(--muted-foreground);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .stat-info .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--foreground);
+        }
+
+        .stat-info .change {
+            font-size: 12px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .primary { background-color: rgba(22, 163, 74, 0.1); color: var(--primary); }
+        .secondary { background-color: rgba(59, 130, 246, 0.1); color: #3B82F6; }
+        .destructive { background-color: rgba(239, 68, 68, 0.1); color: #EF4444; }
+        .accent { background-color: rgba(6, 182, 212, 0.1); color: #06B6D4; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 32px;
+        }
+
+        .chart-container {
+            height: 300px;
+            width: 100%;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background-color: var(--card);
+            color: var(--foreground);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--muted);
+        }
+
+        .btn.active {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background-color: var(--muted);
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: var(--border);
+        }
+
+        .action-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .action-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .goals-list, .activities-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .goal-item, .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background-color: var(--muted);
+            border-radius: var(--radius);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background-color: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--foreground);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background-color: var(--card);
+            color: var(--foreground);
+            font-size: 14px;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            flex: 1;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+        }
+
+        @media (min-width: 1024px) {
+            .sidebar {
+                position: static;
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .menu-btn {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-grid, .bottom-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .content {
+                padding: 16px;
+            }
+            
+            .header {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { 
+            BarChart3, Heart, Scale, Footprints, Droplets, Zap, 
+            Target, Plus, Menu, X, ChevronRight, TrendingDown, Bell 
+        } = LucideReact;
+
+        // Mock data storage
+        const healthData = {
+            metrics: {
+                weight: { value: 172, unit: 'lbs', date: '2024-02-15' },
+                heartRate: { value: 72, unit: 'bpm', date: '2024-02-15' },
+                steps: 8429,
+                water: 48 // oz
+            },
+            activities: [
+                { id: 1, name: 'Morning Run', type: 'exercise', details: '3.2 miles • 28 minutes', time: '2h ago' },
+                { id: 2, name: 'Weight Log', type: 'weight', details: '172 lbs recorded', time: '5h ago' },
+                { id: 3, name: 'Yoga Session', type: 'exercise', details: '45 minutes • Hatha Yoga', time: '1d ago' },
+                { id: 4, name: 'Water Intake', type: 'water', details: '8 glasses • Goal completed', time: '1d ago' }
+            ],
+            goals: [
+                { id: 1, name: 'Lose 10 lbs', current: 7, target: 10, unit: 'lbs', type: 'weight_loss' },
+                { id: 2, name: 'Walk 10,000 steps daily', current: 8429, target: 10000, unit: 'steps', type: 'daily_steps' },
+                { id: 3, name: 'Exercise 5x per week', current: 3, target: 5, unit: 'sessions', type: 'weekly_exercise' }
+            ],
+            weightHistory: [
+                { date: 'Jan 1', weight: 178 },
+                { date: 'Jan 8', weight: 175 },
+                { date: 'Jan 15', weight: 174 },
+                { date: 'Jan 22', weight: 172 },
+                { date: 'Jan 29', weight: 171 },
+                { date: 'Feb 5', weight: 172 },
+                { date: 'Feb 12', weight: 172 }
+            ]
+        };
+
+        function HealthTracker() {
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+            const [modalOpen, setModalOpen] = useState(false);
+            const [modalType, setModalType] = useState('weight');
+            const [chartPeriod, setChartPeriod] = useState('week');
+            const [formData, setFormData] = useState({
+                value: '',
+                unit: '',
+                date: new Date().toISOString().split('T')[0],
+                notes: '',
+                name: '',
+                details: '',
+                activityType: ''
+            });
+
+            const openModal = (type) => {
+                setModalType(type);
+                setModalOpen(true);
+            };
+
+            const closeModal = () => {
+                setModalOpen(false);
+                setFormData({
+                    value: '',
+                    unit: '',
+                    date: new Date().toISOString().split('T')[0],
+                    notes: '',
+                    name: '',
+                    details: '',
+                    activityType: ''
+                });
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                // In a real app, this would save to a database
+                alert(`${modalType} logged successfully!`);
+                closeModal();
+            };
+
+            const stats = [
+                {
+                    label: 'Weight',
+                    value: `${healthData.metrics.weight.value} ${healthData.metrics.weight.unit}`,
+                    change: '-2.3 lbs this week',
+                    icon: Scale,
+                    color: 'primary',
+                    trending: 'down'
+                },
+                {
+                    label: 'Steps Today',
+                    value: healthData.metrics.steps.toLocaleString(),
+                    change: `${Math.round((healthData.metrics.steps / 10000) * 100)}% of goal`,
+                    icon: Footprints,
+                    color: 'secondary'
+                },
+                {
+                    label: 'Heart Rate',
+                    value: `${healthData.metrics.heartRate.value} ${healthData.metrics.heartRate.unit}`,
+                    change: 'Normal range',
+                    icon: Heart,
+                    color: 'destructive'
+                },
+                {
+                    label: 'Water Intake',
+                    value: `${(healthData.metrics.water / 8).toFixed(1)} L`,
+                    change: `${Math.round((healthData.metrics.water / 64) * 100)}% of daily goal`,
+                    icon: Droplets,
+                    color: 'accent'
+                }
+            ];
+
+            const quickActions = [
+                { name: 'Log Weight', icon: Scale, color: 'primary', type: 'weight' },
+                { name: 'Log Activity', icon: Zap, color: 'secondary', type: 'activity' },
+                { name: 'Log Vitals', icon: Heart, color: 'destructive', type: 'vitals' },
+                { name: 'Log Water', icon: Droplets, color: 'accent', type: 'water' }
+            ];
+
+            const getActivityIcon = (type) => {
+                switch (type) {
+                    case 'exercise': return Zap;
+                    case 'weight': return Scale;
+                    case 'water': return Droplets;
+                    default: return Target;
+                }
+            };
+
+            const getActivityColor = (type) => {
+                switch (type) {
+                    case 'exercise': return 'rgba(16, 185, 129, 0.1)';
+                    case 'weight': return 'rgba(59, 130, 246, 0.1)';
+                    case 'water': return 'rgba(6, 182, 212, 0.1)';
+                    default: return 'rgba(139, 92, 246, 0.1)';
+                }
+            };
+
+            return (
+                <div className="container">
+                    {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)} />}
+                    
+                    <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+                        <div className="sidebar-header">
+                            <div className="logo">
+                                <div className="logo-icon">
+                                    <Heart size={24} />
+                                </div>
+                                <h1>HealthTracker</h1>
+                            </div>
+                            <button className="menu-btn" onClick={() => setSidebarOpen(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <nav className="nav-items">
+                            <a href="#" className="nav-item active">
+                                <BarChart3 size={20} />
+                                <span>Dashboard</span>
+                            </a>
+                            <a href="#" className="nav-item">
+                                <BarChart3 size={20} />
+                                <span>Metrics</span>
+                            </a>
+                            <a href="#" className="nav-item">
+                                <Zap size={20} />
+                                <span>Activities</span>
+                            </a>
+                            <a href="#" className="nav-item">
+                                <Target size={20} />
+                                <span>Goals</span>
+                            </a>
+                        </nav>
+                    </aside>
+
+                    <main className="main-content">
+                        <header className="header">
+                            <div className="header-left">
+                                <button className="menu-btn" onClick={() => setSidebarOpen(true)}>
+                                    <Menu size={24} />
+                                </button>
+                                <div>
+                                    <h2>Dashboard</h2>
+                                    <p style={{ color: 'var(--muted-foreground)', fontSize: '14px' }}>
+                                        Today, {new Date().toLocaleDateString('en-US', { 
+                                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="header-right">
+                                <button className="menu-btn" style={{ position: 'relative' }}>
+                                    <Bell size={20} />
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: '-4px',
+                                        right: '-4px',
+                                        width: '20px',
+                                        height: '20px',
+                                        backgroundColor: 'var(--destructive)',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        fontSize: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>2</span>
+                                </button>
+                                <div className="avatar">JD</div>
+                            </div>
+                        </header>
+
+                        <div className="content">
+                            <div className="stats-grid">
+                                {stats.map((stat, index) => (
+                                    <div key={index} className="card">
+                                        <div className="stat-card">
+                                            <div className="stat-info">
+                                                <h3>{stat.label}</h3>
+                                                <div className="value">{stat.value}</div>
+                                                <div className={`change ${stat.color}`}>
+                                                    {stat.trending === 'down' && <TrendingDown size={16} />}
+                                                    {stat.change}
+                                                </div>
+                                            </div>
+                                            <div className={`stat-icon ${stat.color}`}>
+                                                <stat.icon size={24} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="main-grid">
+                                <div className="card">
+                                    <div className="chart-header">
+                                        <h3>Weight Progress</h3>
+                                        <div className="chart-controls">
+                                            {['week', 'month', 'year'].map(period => (
+                                                <button
+                                                    key={period}
+                                                    className={`btn ${chartPeriod === period ? 'active' : ''}`}
+                                                    onClick={() => setChartPeriod(period)}
+                                                >
+                                                    {period.charAt(0).toUpperCase() + period.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="chart-container">
+                                        <div style={{ 
+                                            height: '100%', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center',
+                                            color: 'var(--muted-foreground)'
+                                        }}>
+                                            Weight Chart: {healthData.weightHistory.map(point => `${point.date}: ${point.weight}lbs`).join(', ')}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="card">
+                                    <h3 style={{ marginBottom: '24px' }}>Quick Log</h3>
+                                    <div className="quick-actions">
+                                        {quickActions.map((action, index) => (
+                                            <button
+                                                key={index}
+                                                className="action-btn"
+                                                onClick={() => openModal(action.type)}
+                                            >
+                                                <div className="action-btn-left">
+                                                    <div className={`action-icon ${action.color}`}>
+                                                        <action.icon size={16} />
+                                                    </div>
+                                                    <span>{action.name}</span>
+                                                </div>
+                                                <ChevronRight size={20} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bottom-grid">
+                                <div className="card">
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                                        <h3>Current Goals</h3>
+                                        <button className="btn btn-primary">
+                                            <Plus size={16} style={{ marginRight: '8px' }} />
+                                            Set New Goal
+                                        </button>
+                                    </div>
+                                    <div className="goals-list">
+                                        {healthData.goals.map(goal => {
+                                            const percentage = Math.min((goal.current / goal.target) * 100, 100);
+                                            return (
+                                                <div key={goal.id}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                        <span style={{ fontWeight: '500' }}>{goal.name}</span>
+                                                        <span style={{ color: 'var(--muted-foreground)', fontSize: '14px' }}>
+                                                            {goal.current}/{goal.target} {goal.unit}
+                                                        </span>
+                                                    </div>
+                                                    <div className="progress-bar">
+                                                        <div className="progress-fill" style={{ width: `${percentage}%` }} />
+                                                    </div>
+                                                    <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '4px' }}>
+                                                        {goal.type === 'daily_steps' ? 'Daily goal' : goal.type === 'weekly_exercise' ? 'Weekly goal' : 'Target goal'}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="card">
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                                        <h3>Recent Activities</h3>
+                                        <button className="btn" style={{ color: 'var(--primary)' }}>View All</button>
+                                    </div>
+                                    <div className="activities-list">
+                                        {healthData.activities.map(activity => {
+                                            const Icon = getActivityIcon(activity.type);
+                                            const bgColor = getActivityColor(activity.type);
+                                            return (
+                                                <div key={activity.id} className="activity-item">
+                                                    <div className="action-icon" style={{ backgroundColor: bgColor }}>
+                                                        <Icon size={20} />
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontWeight: '500', marginBottom: '4px' }}>{activity.name}</div>
+                                                        <div style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>{activity.details}</div>
+                                                    </div>
+                                                    <span style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>{activity.time}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    {modalOpen && (
+                        <div className="modal-overlay" onClick={closeModal}>
+                            <div className="modal" onClick={e => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <h3>Log {modalType.charAt(0).toUpperCase() + modalType.slice(1)}</h3>
+                                    <button className="menu-btn" onClick={closeModal}>
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                
+                                <form onSubmit={handleSubmit}>
+                                    {modalType === 'activity' && (
+                                        <div className="form-group">
+                                            <label className="form-label">Activity Type</label>
+                                            <select 
+                                                className="form-select"
+                                                value={formData.activityType}
+                                                onChange={e => setFormData(prev => ({ ...prev, activityType: e.target.value }))}
+                                                required
+                                            >
+                                                <option value="">Select activity type</option>
+                                                <option value="exercise">Exercise</option>
+                                                <option value="steps">Steps</option>
+                                                <option value="sleep">Sleep</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {(modalType === 'activity' || modalType === 'water') && (
+                                        <div className="form-group">
+                                            <label className="form-label">Activity Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                value={formData.name}
+                                                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                                placeholder={modalType === 'water' ? 'Water intake' : 'Activity name'}
+                                                required
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            {modalType === 'weight' ? 'Weight (lbs)' : 
+                                             modalType === 'vitals' ? 'Heart Rate (BPM)' :
+                                             modalType === 'water' ? 'Water (oz)' : 'Duration (minutes)'}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            className="form-input"
+                                            value={formData.value}
+                                            onChange={e => setFormData(prev => ({ ...prev, value: e.target.value }))}
+                                            placeholder={`Enter ${modalType === 'weight' ? 'weight' : modalType === 'vitals' ? 'heart rate' : modalType === 'water' ? 'water intake' : 'duration'}`}
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div className="form-group">
+                                        <label className="form-label">Date</label>
+                                        <input
+                                            type="date"
+                                            className="form-input"
+                                            value={formData.date}
+                                            onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                                            required
+                                        />
+                                    </div>
+
+                                    {modalType === 'activity' && (
+                                        <div className="form-group">
+                                            <label className="form-label">Details</label>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                value={formData.details}
+                                                onChange={e => setFormData(prev => ({ ...prev, details: e.target.value }))}
+                                                placeholder="e.g., 3.2 miles, 300 calories burned"
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    <div className="form-group">
+                                        <label className="form-label">Notes (optional)</label>
+                                        <textarea
+                                            className="form-textarea"
+                                            value={formData.notes}
+                                            onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                                            placeholder="Add any notes..."
+                                            rows="3"
+                                        />
+                                    </div>
+                                    
+                                    <div className="form-actions">
+                                        <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                                            Cancel
+                                        </button>
+                                        <button type="submit" className="btn btn-primary">
+                                            Save
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<HealthTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html>
